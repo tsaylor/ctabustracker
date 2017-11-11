@@ -2,32 +2,28 @@ DESCRIPTION
 
 A python wrapper for the Chicago Transit Authority's Bustracker API.
 
-This software was developed by the News Applications Development Team at the
-Chicago Tribune.  To see more of our work, visit:
-
-  http://apps.chicagotribune.com/
-  
 
 REQUIREMENTS
 
-Python >= 2.6
+Python >= 2.7
 BeautifulSoup
-  
-  
+lxml
+
+
 INSTALL
 
 This module use setuptools. To install run:
 
 $ python setup.py install
-  
-  
+
+
 USAGE
 
 Use of this module requires a Bustracker API key.  Get yours and learn more
 about the API at the CTA's Developer Center:
 
   http://www.transitchicago.com/developers/default.aspx
-  
+
 Once you have acquired and API key, you should be able to execute the
 following commands in the Python interpreter:
 
@@ -38,7 +34,15 @@ following commands in the Python interpreter:
 A dictionary structure describing all currently available routes will be
 printed.
 
-  
+
 LICENSING
 
 This software is licensed under the MIT license.  For details see COPYING.
+
+CREDITS
+
+This software was originally developed by the News Applications Development Team
+at the Chicago Tribune. While they've moved on from the Tribune, the team lives
+on in our hearts.
+
+  https://github.com/newsapps/ctabustracker

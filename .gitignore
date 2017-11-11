@@ -1,6 +1,4 @@
 *.pyc
-pip-log.txt
-build
-*~
+venv*
 dist
 *.egg-info

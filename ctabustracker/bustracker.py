@@ -3,10 +3,20 @@
 
 from datetime import datetime
 import time
-from urllib import urlencode
-from urllib2 import urlopen, URLError
+try:
+    from urllib import urlencode
+    from urllib2 import urlopen, URLError
+except ImportError:
+    from urllib.parse import urlencode
+    from urllib.request import urlopen
+    from urllib.error import URLError
+from bs4 import BeautifulSoup
 
-from BeautifulSoup import BeautifulStoneSoup
+try:
+    input = raw_input
+except NameError:
+    pass
+
 
 """
 This module provides a thin wrapper around the CTA BusTracker API.
@@ -76,7 +86,7 @@ class CTABusTracker(object):
         url = self._build_api_url('gettime')
 
         xml = self._grab_url(url)
-        soup = BeautifulStoneSoup(xml)
+        soup = BeautifulSoup(xml, features='xml')
 
         tag = soup.find('tm')
 
@@ -91,7 +101,7 @@ class CTABusTracker(object):
         url = self._build_api_url('getvehicles', vid=vehicle_id)
 
         xml = self._grab_url(url)
-        soup = BeautifulStoneSoup(xml)
+        soup = BeautifulSoup(xml, features='xml')
 
         vehicle_tags = soup.findAll('vehicle')
 
@@ -130,7 +140,7 @@ class CTABusTracker(object):
         url = self._build_api_url('getvehicles', rt=route_id)
 
         xml = self._grab_url(url)
-        soup = BeautifulStoneSoup(xml)
+        soup = BeautifulSoup(xml, features='xml')
 
         vehicles = {}
 
@@ -166,7 +176,7 @@ class CTABusTracker(object):
         url = self._build_api_url('getroutes')
 
         xml = self._grab_url(url)
-        soup = BeautifulStoneSoup(xml)
+        soup = BeautifulSoup(xml, features='xml')
 
         routes = {}
 
@@ -187,7 +197,7 @@ class CTABusTracker(object):
         url = self._build_api_url('getdirections', rt=route_id)
 
         xml = self._grab_url(url)
-        soup = BeautifulStoneSoup(xml)
+        soup = BeautifulSoup(xml, features='xml')
 
         directions = []
 
@@ -206,7 +216,7 @@ class CTABusTracker(object):
         url = self._build_api_url('getstops', rt=route_id, dir=direction)
 
         xml = self._grab_url(url)
-        soup = BeautifulStoneSoup(xml)
+        soup = BeautifulSoup(xml, features='xml')
 
         stops = {}
 
@@ -233,7 +243,7 @@ class CTABusTracker(object):
         url = self._build_api_url('getpatterns', pid=pattern_id)
 
         xml = self._grab_url(url)
-        soup = BeautifulStoneSoup(xml)
+        soup = BeautifulSoup(xml, features='xml')
 
         pattern_tags = soup.findAll('ptr')
 
@@ -280,7 +290,7 @@ class CTABusTracker(object):
         url = self._build_api_url('getpatterns', rt=route_id)
 
         xml = self._grab_url(url)
-        soup = BeautifulStoneSoup(xml)
+        soup = BeautifulSoup(xml, features='xml')
 
         patterns = {}
 
@@ -347,7 +357,7 @@ class CTABusTracker(object):
         Encapsulates prediction parsing since it has multiple entry points.
         """
         xml = self._grab_url(url)
-        soup = BeautifulStoneSoup(xml)
+        soup = BeautifulSoup(xml, features='xml')
 
         predictions = []
 
@@ -409,7 +419,7 @@ class CTABusTracker(object):
         of requesting this information.
         """
         xml = self._grab_url(url)
-        soup = BeautifulStoneSoup(xml)
+        soup = BeautifulSoup(xml, features='xml')
 
         bulletins = []
 
@@ -439,39 +449,39 @@ class CTABusTracker(object):
 
 # Demo
 if __name__ == "__main__":
-    API_KEY = raw_input('Enter your API Key:')
-    TEST_ROUTE = raw_input('Enter a route id (e.g. 60):')
+    API_KEY = input('Enter your API Key:')
+    TEST_ROUTE = input('Enter a route id (e.g. 60):')
 
     cbt = CTABusTracker(API_KEY)
 
-    print 'CTA system time is ', cbt.get_time(), '.'
+    print('CTA system time is {}.'.format(cbt.get_time()))
 
     routes = cbt.get_routes()
-    print 'Found %i routes.' % len(routes)
+    print('Found {} routes.'.format(len(routes)))
 
     dirs = cbt.get_route_directions(TEST_ROUTE)
-    print 'Route %s runs in %i directions.' % (TEST_ROUTE, len(dirs))
+    print('Route {} runs in {} directions.'.format(TEST_ROUTE, len(dirs)))
 
     vehicles = cbt.get_route_vehicles(TEST_ROUTE)
-    print 'Route %s has %i active vehicles.' % (TEST_ROUTE, len(vehicles))
+    print('Route {} has {} active vehicles.'.format(TEST_ROUTE, len(vehicles)))
 
     stops = cbt.get_route_stops(TEST_ROUTE, dirs[0])
-    print 'Route %s has %i active stops in the %s direction.'.format(
+    print('Route {} has {} active stops in the {} direction.'.format(
         TEST_ROUTE, len(stops), dirs[0]
-    )
+    ))
 
     bulletins = cbt.get_route_service_bulletins(TEST_ROUTE)
     if bulletins:
-        print 'Route %s has %i services bulletins.'.format(
+        print('Route {} has {} services bulletins.'.format(
             TEST_ROUTE, len(bulletins)
-        )
+        ))
     else:
-        print 'Route %s has no service bulletins.'.format(TEST_ROUTE)
+        print('Route {} has no service bulletins.'.format(TEST_ROUTE))
 
     patterns = cbt.get_route_patterns(TEST_ROUTE)
-    print 'Route %s includes %i patterns.'.format(TEST_ROUTE, len(patterns))
+    print('Route {} includes {} patterns.'.format(TEST_ROUTE, len(patterns)))
 
     predictions = cbt.get_route_predictions(TEST_ROUTE)
-    print 'Route %s has %i ETD/ETA predictions.'.format(
+    print('Route {} has {} ETD/ETA predictions.'.format(
         TEST_ROUTE, len(predictions)
-    )
+    ))

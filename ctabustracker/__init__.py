@@ -1,1 +1,1 @@
-from bustracker import CTABusTracker  # NOQA
+from .bustracker import CTABusTracker  # NOQA

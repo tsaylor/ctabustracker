@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='ctabustracker',
-    version='0.2dev1',
+    version='0.2dev2',
     description=("A python wrapper for the Chicago Transit Authority's"
                  ' Bustracker API.'),
     long_description='',

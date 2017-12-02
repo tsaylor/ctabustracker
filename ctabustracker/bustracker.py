@@ -2,6 +2,7 @@
 # coding: utf-8
 
 from datetime import datetime
+import logging
 import time
 try:
     from urllib import urlencode
@@ -29,6 +30,9 @@ For a demonstration of features, execute the module.
 
 CTA_API_VERSION = 'v1'
 CTA_API_ROOT_URL = 'http://www.ctabustracker.com/bustime/api'
+
+logging.basicConfig(level=logging.WARNING)
+logger = logging.getLogger(__name__)
 
 
 class CTABusTracker(object):
@@ -67,6 +71,7 @@ class CTABusTracker(object):
 
         while attempts_remaining > 1:
             try:
+                logger.debug('Fetching %s', url)
                 return urlopen(url, timeout=5)
             except URLError:
                 # print "%s, Retrying in %d seconds..." % (str(e), delay)
@@ -92,27 +97,29 @@ class CTABusTracker(object):
 
         return datetime.strptime(tag.string, '%Y%m%d %H:%M:%S')
 
-    def get_vehicle(self, vehicle_id):
+    def get_vehicles(self, vehicle_ids=[], route_ids=[], time_res='s'):
         """
-        Get the details of a single vehicle.
+        Get the details of several vehicles by id or by route they're on.
 
         Return a dictionary of vehicle attributes.
         """
-        url = self._build_api_url('getvehicles', vid=vehicle_id)
+        params = {'tmres': time_res}
+        if vehicle_ids:
+            params['vid'] = ','.join([str(a) for a in vehicle_ids])
+        else:
+            params['rt'] = ','.join([str(a) for a in route_ids])
+
+        url = self._build_api_url('getvehicles', **params)
 
         xml = self._grab_url(url)
         soup = BeautifulSoup(xml, features='xml')
 
         vehicle_tags = soup.findAll('vehicle')
 
-        if len(vehicle_tags) > 1:
-            raise Exception('Multiple buses with the same id?')
-
-        tag = vehicle_tags[0]
-        vehicle = {
+        vehicle_data = [{
             'id': str(tag.vid.string),
             'last_update': datetime.strptime(
-                tag.tmstmp.string, '%Y%m%d %H:%M'
+                tag.tmstmp.string, '%Y%m%d %H:%M:%S'
             ),
             'latitude': str(tag.lat.string),
             'longitude': str(tag.lon.string),
@@ -120,15 +127,11 @@ class CTABusTracker(object):
             'pattern_id': str(tag.pid.string),
             'route_id': str(tag.rt.string),
             'destination': str(tag.des.string),
-            'distance_into_route': float(tag.pdist.string)
-            }
+            'distance_into_route': float(tag.pdist.string),
+            'delayed': bool(tag.find('dly')) and tag.dly.string == 'true'
+        } for tag in vehicle_tags]
 
-        if tag.find('dly') and tag.dly.string == 'true':
-            vehicle['delayed'] = True
-        else:
-            vehicle['delayed'] = False
-
-        return vehicle
+        return vehicle_data
 
     def get_route_vehicles(self, route_id):
         """
@@ -156,13 +159,9 @@ class CTABusTracker(object):
                 'pattern_id': str(tag.pid.string),
                 'route_id': str(tag.rt.string),
                 'destination': str(tag.des.string),
-                'distance_into_route': float(tag.pdist.string)
-                }
-
-            if tag.find('dly') and tag.dly.string == 'true':
-                vehicles[str(tag.vid.string)]['delayed'] = True
-            else:
-                vehicles[str(tag.vid.string)]['delayed'] = False
+                'distance_into_route': float(tag.pdist.string),
+                'delayed': bool(tag.find('dly')) and tag.dly.string == 'true'
+            }
 
         return vehicles
 
@@ -322,33 +321,27 @@ class CTABusTracker(object):
 
         return patterns
 
-    def get_vehicle_predictions(self, vehicle_id):
+    def get_vehicle_predictions(self, vehicle_ids):
         """
-        Get ETD/ETA predictions for a given vehicle.
+        Get ETD/ETA predictions for a given list of vehicles.
 
         Return a list of predictions (dictoinaries of prediction attributes).
         """
-        url = self._build_api_url('getpredictions', vid=vehicle_id)
+        url = self._build_api_url(
+            'getpredictions', vid=','.join(str(a) for a in vehicle_ids)
+        )
 
         return self._parse_predictions(url)
 
-    def get_route_predictions(self, route_id):
+    def get_stop_predictions(self, stop_ids):
         """
-        Get ETD/ETA predictions for a given route.
+        Get ETD/ETA predictions for a given list of stops.
 
         Return a list of predictions (dictoinaries of prediction attributes).
         """
-        url = self._build_api_url('getpredictions', rt=route_id)
-
-        return self._parse_predictions(url)
-
-    def get_stop_predictions(self, stop_id):
-        """
-        Get ETD/ETA predictions for a given stop.
-
-        Return a list of predictions (dictoinaries of prediction attributes).
-        """
-        url = self._build_api_url('getpredictions', stpid=stop_id)
+        url = self._build_api_url(
+            'getpredictions', stpid=','.join(str(a) for a in stop_ids)
+        )
 
         return self._parse_predictions(url)
 
@@ -377,13 +370,8 @@ class CTABusTracker(object):
                 'prediction': datetime.strptime(
                     tag.prdtm.string, '%Y%m%d %H:%M'
                 ),
+                'delayed': bool(tag.find('dly')) and tag.dly.string == 'true'
             }
-
-            if tag.find('dly') and tag.dly.string == 'true':
-                p['delay'] = True
-            else:
-                p['delay'] = False
-
             predictions.append(p)
 
         return predictions
@@ -446,6 +434,7 @@ class CTABusTracker(object):
             bulletins.append(b)
 
         return bulletins
+
 
 # Demo
 if __name__ == "__main__":
